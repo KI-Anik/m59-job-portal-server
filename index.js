@@ -29,15 +29,15 @@ async function run() {
     const jobsCollection = client.db('jobPortal').collection('jobs')
     const applicantCollection = client.db('jobPortal').collection('applicants')
 
-    app.get('/jobs', async(req,res)=>{
+    app.get('/jobs', async (req, res) => {
       const cursor = jobsCollection.find()
       const result = await cursor.toArray()
       res.send(result)
     })
 
-    app.get('/jobs/:id', async(req,res)=>{
+    app.get('/jobs/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id : new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await jobsCollection.findOne(query)
       res.send(result)
     })
@@ -45,15 +45,28 @@ async function run() {
     // job application apis
 
     // get all data
-    app.get('/job-applications', async(req,res)=>{
+    app.get('/job-applications', async (req, res) => {
       const email = req.query.email;
-      const query = {applicant_email: email}
+      const query = { applicant_email: email }
       const result = await applicantCollection.find(query).toArray()
+
+      // get aggregate data (not recommeneded way)
+      for (const application of result) {
+        console.log(application.job_id)
+        const query1 = { _id: new ObjectId(application.job_id) }
+        const job = await jobsCollection.findOne(query1)
+        if (job) {
+          application.title = job.title
+          application.location = job.location
+          application.company = job.company
+          application.company_logo = job.company_logo
+        }
+      }
       res.send(result)
     })
-    app.post('/job-applicatons', async(req,res)=>{
+    app.post('/job-applicatons', async (req, res) => {
       const application = req.body;
-      const result= await applicantCollection.insertOne(application)
+      const result = await applicantCollection.insertOne(application)
       res.send(result)
     })
 
