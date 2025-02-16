@@ -30,12 +30,18 @@ async function run() {
     const applicantCollection = client.db('jobPortal').collection('applicants')
     // job circular related apis
     app.get('/jobs', async (req, res) => {
-      const cursor = jobsCollection.find()
+      const email = req.query.email
+      let query = {}
+      if (email) {
+         query = { hr_email: email }
+      }
+      console.log(email)
+      const cursor = jobsCollection.find(query)
       const result = await cursor.toArray()
       res.send(result)
     })
 
-    app.post('/jobs', async(req,res)=>{
+    app.post('/jobs', async (req, res) => {
       const newJob = req.body;
       const result = await jobsCollection.insertOne(newJob)
       res.send(result)
