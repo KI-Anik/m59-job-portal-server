@@ -33,9 +33,8 @@ async function run() {
       const email = req.query.email
       let query = {}
       if (email) {
-         query = { hr_email: email }
+        query = { hr_email: email }
       }
-      console.log(email)
       const cursor = jobsCollection.find(query)
       const result = await cursor.toArray()
       res.send(result)
@@ -64,7 +63,6 @@ async function run() {
 
       // get aggregate data (not recommeneded way)
       for (const application of result) {
-        console.log(application.job_id)
         const query1 = { _id: new ObjectId(application.job_id) }
         const job = await jobsCollection.findOne(query1)
         if (job) {
@@ -79,6 +77,26 @@ async function run() {
     app.post('/job-applicatons', async (req, res) => {
       const application = req.body;
       const result = await applicantCollection.insertOne(application)
+
+      // implement my total application count. this method is not recommended (use agregate)
+      const id = application.job_id
+      const query = { _id: new ObjectId(id) }
+      const job = await jobsCollection.findOne(query)
+      let newCount = 0
+      if (job.applicationCount) {
+        newCount = job.applicationCount + 1
+      } else {
+        newCount = 1
+      }
+      // update job info
+      const filter = {_id: new ObjectId(id)}
+      const updateDoc = {
+        $set: {
+          applicationCount : newCount
+        } 
+      }
+      const updateResult = await jobsCollection.updateOne(filter,updateDoc)
+
       res.send(result)
     })
 
