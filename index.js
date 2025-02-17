@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
+
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
@@ -75,9 +76,9 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/job-applications/jobs/:job_id', async(req,res)=>{
+    app.get('/job-applications/jobs/:job_id', async (req, res) => {
       const jobId = req.params.job_id;
-      const query= {job_id: jobId}
+      const query = { job_id: jobId }
       const result = await applicantCollection.find(query).toArray()
       res.send(result)
     })
@@ -97,14 +98,27 @@ async function run() {
         newCount = 1
       }
       // update job info
-      const filter = {_id: new ObjectId(id)}
+      const filter = { _id: new ObjectId(id) }
       const updateDoc = {
         $set: {
-          applicationCount : newCount
-        } 
+          applicationCount: newCount
+        }
       }
-      const updateResult = await jobsCollection.updateOne(filter,updateDoc)
+      const updateResult = await jobsCollection.updateOne(filter, updateDoc)
 
+      res.send(result)
+    })
+
+    app.patch('/job-applications/:id', async (req, res) => {
+      const id = req.params.id
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: {
+          status: data.status
+        }
+      }
+      const result = await applicantCollection.updateOne(filter, updateDoc)
       res.send(result)
     })
 
