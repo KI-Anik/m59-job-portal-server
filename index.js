@@ -1,14 +1,19 @@
 require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
-
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
 const port = process.env.PORT || 5000
 
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true
+}))
 app.use(express.json())
-app.use(cors())
+app.use(cookieParser())
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eko35.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -25,10 +30,22 @@ async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
-
     // job related apis
     const jobsCollection = client.db('jobPortal').collection('jobs')
     const applicantCollection = client.db('jobPortal').collection('applicants')
+
+    // auth related Apis
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' })
+      res
+        .cookie('token', token, {
+          httpOnly: true,
+          secure: false // http
+        })
+        .send({ success: true })
+    })
+
     // job circular related apis
     app.get('/jobs', async (req, res) => {
       const email = req.query.email
@@ -61,6 +78,8 @@ async function run() {
       const email = req.query.email;
       const query = { applicant_email: email }
       const result = await applicantCollection.find(query).toArray()
+
+      console.log('cookie', req.cookies)
 
       // get aggregate data (not recommeneded way)
       for (const application of result) {
