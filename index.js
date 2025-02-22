@@ -15,6 +15,27 @@ app.use(cors({
 app.use(express.json())
 app.use(cookieParser())
 
+const logger = (req, res, next) => {
+  console.log('inside logger')
+  next()
+}
+
+const verifyToken = (req, res, next) => {
+  console.log('vierify TOken')
+  const token = req?.cookies?.token
+
+  if (!token) {
+    return res.status(401).send({ message: 'unAuthorized access' })
+  }
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ message: 'unAuthorized Access' })
+    }
+    req.user = decoded
+    next()
+  })
+}
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eko35.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -47,7 +68,8 @@ async function run() {
     })
 
     // job circular related apis
-    app.get('/jobs', async (req, res) => {
+    app.get('/jobs', logger, async (req, res) => {
+      console.log('inside callback api')
       const email = req.query.email
       let query = {}
       if (email) {
@@ -74,12 +96,16 @@ async function run() {
     // job application apis
 
     // get all data
-    app.get('/job-applications', async (req, res) => {
+    app.get('/job-applications', verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { applicant_email: email }
+
+      if(req.user.email !== email){
+        return res.status(401).send({message: "Forbiden access"})
+      }
       const result = await applicantCollection.find(query).toArray()
 
-      console.log('cookie', req.cookies)
+      // console.log('cookie', req.cookies)
 
       // get aggregate data (not recommeneded way)
       for (const application of result) {
